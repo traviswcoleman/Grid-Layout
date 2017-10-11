@@ -88,9 +88,5 @@ namespace Grid_Layout
         {
             gridControl1.Cells.Add(new GridControl.CellInfo() { CellRegion = e.SelectedRegion, Color = Color.Red, DisplayName = false });
         }
-
-        private void gridControl1_RegionSelected(object sender, GridControl.SelectionEventArgs e)
-        {
-        }
     }
 }

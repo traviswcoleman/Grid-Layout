@@ -34,28 +34,33 @@
             // 
             // hScroll
             // 
+            this.hScroll.AccessibleRole = System.Windows.Forms.AccessibleRole.ScrollBar;
+            this.hScroll.CausesValidation = false;
             this.hScroll.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.hScroll.LargeChange = 5;
             this.hScroll.Location = new System.Drawing.Point(0, 445);
+            this.hScroll.Maximum = 5;
             this.hScroll.Name = "hScroll";
             this.hScroll.Size = new System.Drawing.Size(473, 21);
-            this.hScroll.SmallChange = 0;
             this.hScroll.TabIndex = 0;
             this.hScroll.Visible = false;
+            this.hScroll.ValueChanged += new System.EventHandler(this.Scroll);
             // 
             // vScroll
             // 
             this.vScroll.Dock = System.Windows.Forms.DockStyle.Right;
+            this.vScroll.LargeChange = 5;
             this.vScroll.Location = new System.Drawing.Point(452, 0);
-            this.vScroll.Maximum = 1000;
+            this.vScroll.Maximum = 5;
             this.vScroll.Name = "vScroll";
             this.vScroll.Size = new System.Drawing.Size(21, 445);
             this.vScroll.TabIndex = 1;
             this.vScroll.Visible = false;
+            this.vScroll.ValueChanged += new System.EventHandler(this.Scroll);
             // 
             // GridControl
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 17F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Inherit;
             this.BackColor = System.Drawing.Color.Transparent;
             this.Controls.Add(this.vScroll);
             this.Controls.Add(this.hScroll);
