@@ -65,6 +65,7 @@
             this.Name = "GridControl";
             this.Size = new System.Drawing.Size(473, 466);
             this.Load += new System.EventHandler(this.GridControl_Load);
+            this.ClientSizeChanged += new System.EventHandler(this.GridControl_Resize);
             this.Paint += new System.Windows.Forms.PaintEventHandler(this.GridControl_Paint);
             this.Resize += new System.EventHandler(this.GridControl_Resize);
             this.ResumeLayout(false);
