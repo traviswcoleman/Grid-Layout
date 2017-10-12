@@ -319,11 +319,16 @@ namespace Grid_Layout.Controls
                 RegionSelected?.Invoke(this, new SelectionEventArgs(selRegion));
                 Graphics g = this.CreateGraphics();
                 int offset = (DisplayMinorNumbers || DisplayMajorNumbers) ? (int)g.MeasureString(Math.Floor(Math.Max(g.VisibleClipBounds.Width, g.VisibleClipBounds.Height) / CellSize).ToString(), this.Font).Width + 5 : (int)Math.Ceiling(thickPen.Width / 2);
-                selRegion.X = (int)Math.Floor((selRegion.X - offset) / (decimal)CellSize);
-                selRegion.Y = (int)Math.Floor((selRegion.Y - offset) / (decimal)CellSize);
-                selRegion.Width = (int)Math.Ceiling((Math.Max(mouseDown.Value.X, curLoc.X) - offset) / (decimal)CellSize) - selRegion.X;
-                selRegion.Height = (int)Math.Ceiling((Math.Max(mouseDown.Value.Y, curLoc.Y) - offset) / (decimal)CellSize) - selRegion.Y;
-                CellRegionSelected?.Invoke(this, new SelectionEventArgs(selRegion));
+                selRegion.X = (int)Math.Floor((selRegion.X - offset) / (decimal)CellSize) + hScroll.Value;
+                selRegion.Y = (int)Math.Floor((selRegion.Y - offset) / (decimal)CellSize) + vScroll.Value;
+                selRegion.Width = (int)Math.Ceiling((Math.Max(mouseDown.Value.X, curLoc.X) - offset) / (decimal)CellSize) - selRegion.X + hScroll.Value;
+                selRegion.Height = (int)Math.Ceiling((Math.Max(mouseDown.Value.Y, curLoc.Y) - offset) / (decimal)CellSize) - selRegion.Y + vScroll.Value;
+                Rectangle rect = new Rectangle(0, 0, int.MaxValue, int.MaxValue);
+                if (XLimit.HasValue) rect.Width = XLimit.Value;
+                if (YLimit.HasValue) rect.Height = YLimit.Value;
+
+                if (rect.IntersectsWith(selRegion))
+                    CellRegionSelected?.Invoke(this, new SelectionEventArgs(selRegion));
             }
             mouseDown = null;
             this.Invalidate();
@@ -379,17 +384,43 @@ namespace Grid_Layout.Controls
                     if (cI == null || cI.CellRegion == null)
                         continue;
                     Rectangle drawRect = new Rectangle();
-                    drawRect.X = cI.CellRegion.X * CellSize + xOffset;
-                    drawRect.Y = cI.CellRegion.Y * CellSize + yOffset;
-                    drawRect.Width = cI.CellRegion.Width * CellSize;
-                    drawRect.Height = cI.CellRegion.Height * CellSize;
+                    Rectangle tRect = new Rectangle();
+                    tRect.X = cI.CellRegion.X - hScroll.Value;
+                    tRect.Y = cI.CellRegion.Y - vScroll.Value;
+                    tRect.Width = cI.CellRegion.Width;
+                    tRect.Height = cI.CellRegion.Height;
 
-                    g.FillRectangle(new SolidBrush(cI.Color), drawRect);
-
-                    if (DisplayNames && cI.DisplayName)
+                    if (tRect.X < 0)
                     {
-                        SizeF sz = g.MeasureString(cI.Name, this.Font, new SizeF(drawRect.Size));
-                        g.DrawString(cI.Name, this.Font, foreBrush, drawRect.X + (drawRect.Width / 2) - (sz.Width / 2), drawRect.Y + (drawRect.Height / 2) - (sz.Height / 2));
+                        tRect.Width += tRect.X;
+                        tRect.X = 0;
+                    }
+
+                    if (tRect.Y < 0)
+                    {
+                        tRect.Height += tRect.Y;
+                        tRect.Y = 0;
+                    }
+
+                    if (XLimit.HasValue)
+                        tRect.Width = Math.Min(tRect.Width, XLimit.Value - tRect.X);
+                    if (YLimit.HasValue)
+                        tRect.Height = Math.Min(tRect.Height, YLimit.Value - tRect.Y);
+
+                    if (tRect.Width > 0 && tRect.Height > 0)
+                    {
+                        drawRect.X = tRect.X * CellSize + xOffset;
+                        drawRect.Y = tRect.Y * CellSize + yOffset;
+                        drawRect.Width = tRect.Width * CellSize;
+                        drawRect.Height = tRect.Height * CellSize;
+
+                        g.FillRectangle(new SolidBrush(cI.Color), drawRect);
+
+                        if (DisplayNames && cI.DisplayName)
+                        {
+                            SizeF sz = g.MeasureString(cI.Name, this.Font, new SizeF(drawRect.Size));
+                            g.DrawString(cI.Name, this.Font, foreBrush, drawRect.X + (drawRect.Width / 2) - (sz.Width / 2), drawRect.Y + (drawRect.Height / 2) - (sz.Height / 2));
+                        }
                     }
                 }
             }
