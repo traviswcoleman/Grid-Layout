@@ -75,6 +75,10 @@ namespace Grid_Control
         private Point? mouseDown = null;
         private Pen thickPen = new Pen(Brushes.Black, 5);
         private Pen thinPen = new Pen(Brushes.Black, 1);
+        private double thickRatio = 5f / 20f;
+        private double thinRatio = 1f / 20f;
+        private int margin = 5;
+        private bool redrawn = false;
 
         #region Properties
 
@@ -98,6 +102,9 @@ namespace Grid_Control
             set
             {
                 _cellSize = value;
+                thickPen.Width = (float)Math.Min(Math.Max((float)_cellSize * thickRatio, 1), 20);
+                margin = (int)Math.Max(5, thickPen.Width / 2);
+                thinPen.Width = (float)((float)_cellSize * thinRatio);
                 setScrollBars();
                 this.Invalidate();
             }
@@ -291,10 +298,6 @@ namespace Grid_Control
             this.Invalidate();
         }
 
-        private void GridControl_Load(object sender, EventArgs e)
-        {
-        }
-
         private void GridControl_MouseDown(object sender, MouseEventArgs e)
         {
             mouseDown = e.Location;
@@ -318,11 +321,12 @@ namespace Grid_Control
                 selRegion.Height = Math.Max(curLoc.Y, mouseDown.Value.Y) - selRegion.Y;
                 RegionSelected?.Invoke(this, new SelectionEventArgs(selRegion));
                 Graphics g = this.CreateGraphics();
-                int offset = (DisplayMinorNumbers || DisplayMajorNumbers) ? (int)g.MeasureString(Math.Floor(Math.Max(g.VisibleClipBounds.Width, g.VisibleClipBounds.Height) / CellSize).ToString(), this.Font).Width + 5 : (int)Math.Ceiling(thickPen.Width / 2);
-                selRegion.X = (int)Math.Floor((selRegion.X - offset) / (decimal)CellSize) + hScroll.Value;
-                selRegion.Y = (int)Math.Floor((selRegion.Y - offset) / (decimal)CellSize) + vScroll.Value;
-                selRegion.Width = (int)Math.Ceiling((Math.Max(mouseDown.Value.X, curLoc.X) - offset) / (decimal)CellSize) - selRegion.X + hScroll.Value;
-                selRegion.Height = (int)Math.Ceiling((Math.Max(mouseDown.Value.Y, curLoc.Y) - offset) / (decimal)CellSize) - selRegion.Y + vScroll.Value;
+
+                GenerateOffsets(out int xOffset, out int yOffset);
+                selRegion.X = (int)Math.Floor((selRegion.X - xOffset) / (decimal)CellSize) + hScroll.Value;
+                selRegion.Y = (int)Math.Floor((selRegion.Y - yOffset) / (decimal)CellSize) + vScroll.Value;
+                selRegion.Width = (int)Math.Ceiling((Math.Max(mouseDown.Value.X, curLoc.X) - xOffset) / (decimal)CellSize) - selRegion.X + hScroll.Value;
+                selRegion.Height = (int)Math.Ceiling((Math.Max(mouseDown.Value.Y, curLoc.Y) - yOffset) / (decimal)CellSize) - selRegion.Y + vScroll.Value;
                 Rectangle rect = new Rectangle(0, 0, int.MaxValue, int.MaxValue);
                 if (XLimit.HasValue) rect.Width = XLimit.Value;
                 if (YLimit.HasValue) rect.Height = YLimit.Value;
@@ -341,32 +345,8 @@ namespace Grid_Control
             g.FillRectangle(backBrush, g.VisibleClipBounds);
 
             //Find offset from 0,0 to draw top/left most point
-            int xOffset = 0;
-            int yOffset = 0;
-            if (DisplayMinorNumbers || DisplayMajorNumbers)
-            {
-                if (XLimit.HasValue)
-                {
-                    yOffset = (int)g.MeasureString(XLimit.Value.ToString(), this.Font, 999, new StringFormat(StringFormatFlags.DirectionVertical)).Height + 5;
-                }
-                else
-                {
-                    yOffset = (int)g.MeasureString(Math.Floor(Math.Max(g.VisibleClipBounds.Width, g.VisibleClipBounds.Height) / CellSize + hScroll.Value).ToString(), this.Font).Width + 5;
-                }
-                if (YLimit.HasValue)
-                {
-                    xOffset = (int)g.MeasureString(YLimit.Value.ToString(), this.Font).Width + 5;
-                }
-                else
-                {
-                    xOffset = (int)g.MeasureString(Math.Floor(Math.Max(g.VisibleClipBounds.Width, g.VisibleClipBounds.Height) / CellSize + vScroll.Value).ToString(), this.Font).Width + 5;
-                }
-            }
-            else
-            {
-                xOffset = (int)Math.Ceiling(thickPen.Width / 2);
-                yOffset = xOffset;
-            }
+
+            GenerateOffsets(out int xOffset, out int yOffset);
 
             //How Wide and how tall to draw lines
             int maxWidth = (XLimit.HasValue ? CellSize * (XLimit.Value - hScroll.Value) + xOffset : (int)g.VisibleClipBounds.Width);
@@ -426,7 +406,7 @@ namespace Grid_Control
             }
 
             int xCellsOnScreen = (int)Math.Ceiling((g.VisibleClipBounds.Width - xOffset) / CellSize);
-            int yCellsOnScreen = (int)Math.Ceiling((g.VisibleClipBounds.Width - xOffset) / CellSize);
+            int yCellsOnScreen = (int)Math.Ceiling((g.VisibleClipBounds.Height - yOffset) / CellSize);
 
             int lastCell = Math.Max(
                 XLimit.HasValue ? Math.Min(XLimit.Value, xCellsOnScreen) : xCellsOnScreen,
@@ -445,7 +425,7 @@ namespace Grid_Control
                     {
                         g.DrawLine(thickPen, xVal, yOffset, xVal, maxHeight);
                     }
-                    else if ((i + hScroll.Value) % MinorGridUnit == 0)
+                    else if (thinPen.Width >= 1 && (i + hScroll.Value) % MinorGridUnit == 0)
                     {
                         g.DrawLine(thinPen, xVal, yOffset, xVal, maxHeight);
                     }
@@ -456,7 +436,7 @@ namespace Grid_Control
                     {
                         g.DrawLine(thickPen, xOffset - (int)Math.Floor(thickPen.Width / 2), yVal, maxWidth, yVal);
                     }
-                    else if ((i + vScroll.Value) % MinorGridUnit == 0)
+                    else if (thinPen.Width >= 1 && (i + vScroll.Value) % MinorGridUnit == 0)
                     {
                         g.DrawLine(thinPen, xOffset, yVal, maxWidth - 1, yVal);
                     }
@@ -466,85 +446,14 @@ namespace Grid_Control
                 if (((DisplayMajorNumbers && (i + hScroll.Value) % MajorGridUnit == 0) || (DisplayMinorNumbers && (i + hScroll.Value) % MinorGridUnit == 0)) && (!XLimit.HasValue || (i + hScroll.Value) <= XLimit.Value))
                 {
                     SizeF sz = g.MeasureString((i + hScroll.Value).ToString(), this.Font, yOffset, new StringFormat(StringFormatFlags.DirectionVertical));
-                    g.DrawString((i + hScroll.Value).ToString(), this.Font, this.foreBrush, i * CellSize + xOffset - sz.Width / 2, yOffset - sz.Height - 5, new StringFormat(StringFormatFlags.DirectionVertical));
+                    g.DrawString((i + hScroll.Value).ToString(), this.Font, this.foreBrush, i * CellSize + xOffset - sz.Width / 2, yOffset - sz.Height - margin, new StringFormat(StringFormatFlags.DirectionVertical));
                 }
                 if (((DisplayMajorNumbers && (i + vScroll.Value) % MajorGridUnit == 0) || (DisplayMinorNumbers && (i + vScroll.Value) % MinorGridUnit == 0)) && (!YLimit.HasValue || (i + vScroll.Value) <= YLimit.Value))
                 {
                     SizeF sz = g.MeasureString((i + vScroll.Value).ToString(), this.Font);
-                    g.DrawString((i + vScroll.Value).ToString(), this.Font, this.foreBrush, xOffset - sz.Width - 5, i * CellSize + yOffset - sz.Height / 2);
+                    g.DrawString((i + vScroll.Value).ToString(), this.Font, this.foreBrush, xOffset - sz.Width - margin, i * CellSize + yOffset - sz.Height / 2);
                 }
             }
-
-            //if (xCellCount % MajorGridUnit == 0)
-            //{
-            //    if (YLimit.HasValue && YLimit.Value % MajorGridThickness == 0)
-            //    {
-            //        if (!XLimit.HasValue || xCellCount <= XLimit.Value)
-            //            g.DrawLine(thickPen, i, yOffset - (int)Math.Floor(thickPen.Width / 2), i, maxHeight + (int)Math.Ceiling(thickPen.Width / 2));
-            //    }
-            //    else
-            //    {
-            //        if (!XLimit.HasValue || xCellCount <= XLimit.Value)
-            //            g.DrawLine(thickPen, i, yOffset - (int)Math.Floor(thickPen.Width / 2), i, maxHeight);
-            //    }
-
-            //    if (DisplayMajorNumbers)
-            //    {
-            //        if (!XLimit.HasValue || (XLimit.HasValue && xCellCount <= XLimit.Value))
-            //        {
-            //            SizeF sz = g.MeasureString(xCellCount.ToString(), this.Font, yOffset, new StringFormat(StringFormatFlags.DirectionVertical));
-            //            g.DrawString(xCellCount.ToString(), this.Font, foreBrush, i - sz.Width / 2, yOffset - sz.Height - 5, new StringFormat(StringFormatFlags.DirectionVertical));
-            //        }
-            //    }
-            //    xCellCount++;
-            //}
-            //else if (xCellCount % MinorGridUnit == 0)
-            //{
-            //    if (!XLimit.HasValue || xCellCount <= XLimit.Value)
-            //        g.DrawLine(thinPen, i, yOffset, i, maxHeight);
-
-            //    if (DisplayMinorNumbers)
-            //    {
-            //        if (!XLimit.HasValue || (XLimit.HasValue && xCellCount <= XLimit.Value))
-            //        {
-            //            SizeF sz = g.MeasureString(xCellCount.ToString(), this.Font, yOffset, new StringFormat(StringFormatFlags.DirectionVertical));
-            //            g.DrawString(xCellCount.ToString(), this.Font, foreBrush, i - sz.Width / 2, yOffset - sz.Height - 5, new StringFormat(StringFormatFlags.DirectionVertical));
-            //        }
-            //    }
-            //    xCellCount++;
-            //}
-
-            //if (yCellCount % MajorGridUnit == 0)
-            //{
-            //    if (!YLimit.HasValue || yCellCount <= YLimit.Value)
-            //        g.DrawLine(thickPen, xOffset, i, maxWidth, i);
-
-            //    if (DisplayMajorNumbers)
-            //    {
-            //        if (!YLimit.HasValue || (YLimit.HasValue && yCellCount <= YLimit.Value))
-            //        {
-            //            SizeF sz = g.MeasureString(yCellCount.ToString(), this.Font);
-            //            g.DrawString(yCellCount.ToString(), this.Font, foreBrush, xOffset - sz.Width - 5, i - (sz.Height / 2));
-            //        }
-            //    }
-            //    yCellCount++;
-            //}
-            //else if (yCellCount % MinorGridUnit == 0)
-            //{
-            //    if (!YLimit.HasValue || yCellCount <= YLimit.Value)
-            //        g.DrawLine(thinPen, xOffset, i, maxWidth, i);
-
-            //    if (DisplayMinorNumbers)
-            //    {
-            //        if (!YLimit.HasValue || (YLimit.HasValue && yCellCount <= YLimit.Value))
-            //        {
-            //            SizeF sz = g.MeasureString(yCellCount.ToString(), this.Font);
-            //            g.DrawString(yCellCount.ToString(), this.Font, foreBrush, xOffset - sz.Width - 5, i - (sz.Height / 2));
-            //        }
-            //    }
-            //    yCellCount++;
-            //}
-            //}
 
             //Draw rubberband box
             if (mouseDown.HasValue && curLoc != mouseDown.Value)
@@ -554,11 +463,32 @@ namespace Grid_Control
 
             g.ResetClip();
             g.SetClip(g.VisibleClipBounds);
+            redrawn = true;
         }
 
         private void GridControl_Resize(object sender, EventArgs e)
         {
             setScrollBars();
+            this.Invalidate();
+        }
+
+        private new void Scroll(Object sender, EventArgs e)
+        {
+            setScrollBars();
+            this.Invalidate();
+        }
+
+        private void GridControl_MouseWheel(object sender, MouseEventArgs e)
+        {
+            if (e.Delta > 0)
+            {
+                CellSize = Math.Min(CellSize + 1, 100);
+            }
+            else if (e.Delta < 0)
+            {
+                CellSize = (int)Math.Max(CellSize - 1, 10f / (float)MajorGridUnit);
+            }
+            this.Invalidate();
         }
 
         #endregion Events
@@ -577,8 +507,13 @@ namespace Grid_Control
 
         private void setScrollBars()
         {
+            if (!redrawn) return;
+            redrawn = false;
             Graphics g = this.CreateGraphics();
-            int offset = (DisplayMinorNumbers || DisplayMajorNumbers) ? (int)g.MeasureString(Math.Floor(Math.Max(g.VisibleClipBounds.Width, g.VisibleClipBounds.Height) / CellSize).ToString(), this.Font).Width + 5 : (int)Math.Ceiling(thickPen.Width / 2);
+            GenerateOffsets(out int xOffset, out int yOffset);
+            int xCellsOnScreen = (int)Math.Floor(((g.VisibleClipBounds.Width - xOffset) / CellSize));
+            int yCellsOnScreen = (int)Math.Floor(((g.VisibleClipBounds.Height - yOffset) / CellSize));
+
             if (!XLimit.HasValue)
             {
                 hScroll.Maximum = (Math.Max(hScroll.Value + hScroll.LargeChange, Cells.Count > 0 ? Cells.Max(cI => cI.CellRegion.X + cI.CellRegion.Width) : 0)) + MajorGridUnit - hScroll.Maximum % MajorGridUnit + hScroll.LargeChange;
@@ -587,15 +522,14 @@ namespace Grid_Control
             }
             else
             {
-                int cellsOnScreen = (int)Math.Floor(((g.VisibleClipBounds.Width - offset) / CellSize));
-                if (cellsOnScreen >= XLimit.Value)
+                if (xCellsOnScreen >= XLimit.Value)
                 {
                     hScroll.Visible = false;
                 }
                 else
                 {
                     hScroll.Visible = true;
-                    hScroll.Maximum = (XLimit.Value - cellsOnScreen) + MajorGridUnit - hScroll.Maximum % MajorGridUnit + hScroll.LargeChange;
+                    hScroll.Maximum = (XLimit.Value - xCellsOnScreen) + MajorGridUnit - hScroll.Maximum % MajorGridUnit + hScroll.LargeChange;
                 }
             }
 
@@ -605,23 +539,45 @@ namespace Grid_Control
             }
             else
             {
-                int cellsOnScreen = (int)Math.Floor(((g.VisibleClipBounds.Height - offset) / CellSize));
-                if (cellsOnScreen >= YLimit.Value)
+                if (yCellsOnScreen >= YLimit.Value)
                 {
                     vScroll.Visible = false;
                 }
                 else
                 {
                     vScroll.Visible = true;
-                    vScroll.Maximum = YLimit.Value - cellsOnScreen;
+                    vScroll.Maximum = YLimit.Value - yCellsOnScreen;
                 }
             }
         }
 
-        private new void Scroll(Object sender, EventArgs e)
+        private void GenerateOffsets(out int xOffset, out int yOffset)
         {
-            setScrollBars();
-            this.Invalidate();
+            Graphics g = this.CreateGraphics();
+            if (DisplayMinorNumbers || DisplayMajorNumbers)
+            {
+                if (XLimit.HasValue)
+                {
+                    yOffset = (int)g.MeasureString(XLimit.Value.ToString(), this.Font, 999, new StringFormat(StringFormatFlags.DirectionVertical)).Height + margin;
+                }
+                else
+                {
+                    yOffset = (int)g.MeasureString(Math.Floor(Math.Max(g.VisibleClipBounds.Width, g.VisibleClipBounds.Height) / CellSize + hScroll.Value).ToString(), this.Font).Width + margin;
+                }
+                if (YLimit.HasValue)
+                {
+                    xOffset = (int)g.MeasureString(YLimit.Value.ToString(), this.Font).Width + margin;
+                }
+                else
+                {
+                    xOffset = (int)g.MeasureString(Math.Floor(Math.Max(g.VisibleClipBounds.Width, g.VisibleClipBounds.Height) / CellSize + vScroll.Value).ToString(), this.Font).Width + margin;
+                }
+            }
+            else
+            {
+                xOffset = (int)Math.Ceiling(thickPen.Width / 2);
+                yOffset = xOffset;
+            }
         }
     }
 }

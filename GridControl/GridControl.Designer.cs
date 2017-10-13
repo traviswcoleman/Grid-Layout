@@ -1,4 +1,7 @@
-﻿namespace Grid_Control
+﻿using System;
+using System.Windows.Forms;
+
+namespace Grid_Control
 {
     partial class GridControl
     {
@@ -69,10 +72,10 @@
             this.Margin = new System.Windows.Forms.Padding(4);
             this.Name = "GridControl";
             this.Size = new System.Drawing.Size(473, 466);
-            this.Load += new System.EventHandler(this.GridControl_Load);
             this.ClientSizeChanged += new System.EventHandler(this.GridControl_Resize);
             this.Paint += new System.Windows.Forms.PaintEventHandler(this.GridControl_Paint);
             this.Resize += new System.EventHandler(this.GridControl_Resize);
+            this.MouseWheel += new System.Windows.Forms.MouseEventHandler(this.GridControl_MouseWheel);
             this.ResumeLayout(false);
 
         }
