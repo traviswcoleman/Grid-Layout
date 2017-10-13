@@ -5,7 +5,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using System.Linq;
 
-namespace Grid_Layout.Controls
+namespace Grid_Control
 {
     public partial class GridControl : UserControl
     {

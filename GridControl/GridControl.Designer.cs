@@ -1,4 +1,4 @@
-﻿namespace Grid_Layout.Controls
+﻿namespace Grid_Control
 {
     partial class GridControl
     {

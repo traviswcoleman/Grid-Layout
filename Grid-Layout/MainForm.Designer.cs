@@ -1,6 +1,6 @@
 ﻿namespace Grid_Layout
 {
-    partial class frmMain
+    partial class MainForm
     {
         /// <summary>
         /// Required designer variable.
@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(frmMain));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             this.chkDisplayNames = new System.Windows.Forms.CheckBox();
             this.label10 = new System.Windows.Forms.Label();
             this.label9 = new System.Windows.Forms.Label();
@@ -51,7 +51,7 @@
             this.chkMajorNum = new System.Windows.Forms.CheckBox();
             this.chkMinorNum = new System.Windows.Forms.CheckBox();
             this.label11 = new System.Windows.Forms.Label();
-            this.gridControl1 = new Grid_Layout.Controls.GridControl();
+            this.gridControl1 = new Grid_Control.GridControl();
             this.gridControlBindingSource = new System.Windows.Forms.BindingSource(this.components);
             ((System.ComponentModel.ISupportInitialize)(this.XLimit)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.YLimit)).BeginInit();
@@ -351,7 +351,7 @@
             this.gridControl1.TabIndex = 22;
             this.gridControl1.XLimit = 20;
             this.gridControl1.YLimit = 25;
-            this.gridControl1.CellRegionSelected += new Grid_Layout.Controls.GridControl.RegionSelectedEventHandler(this.gridControl1_CellRegionSelected);
+            this.gridControl1.CellRegionSelected += new Grid_Control.GridControl.RegionSelectedEventHandler(this.gridControl1_CellRegionSelected);
             // 
             // frmMain
             // 
@@ -423,7 +423,7 @@
         private System.Windows.Forms.CheckBox chkMinorNum;
         private System.Windows.Forms.CheckBox chkDisplayNames;
         private System.Windows.Forms.Label label10;
-        private Controls.GridControl gridControl1;
+        private Grid_Control.GridControl gridControl1;
         private System.Windows.Forms.Label label11;
     }
 }
